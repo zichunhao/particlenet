@@ -6,8 +6,6 @@ def parse_args() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
     # general
-    parser.add_argument("--log-file", type=str, default="", help='log file name - default is name of file in outs/ ; "stdout" prints to console')
-    parser.add_argument("--log", type=str, default="INFO", help="log level", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
     parser.add_argument("--path-results", type=str, required=True, help="path to results directory")
 
     # data settings
@@ -36,6 +34,7 @@ def parse_args() -> argparse.ArgumentParser:
     parser.add_argument('--cycle-max-lr', type=float, default=3e-3)
     parser.add_argument('--cycle-final-lr', type=float, default=5e-7)
     parser.add_argument('--weight-decay', type=float, default=1e-4)
+    parser.add_argument('--patience', type=int, default=100, help="patience for early stopping; set to -1 to disable")
 
     args = parser.parse_args()
 

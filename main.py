@@ -69,6 +69,7 @@ def main(args):
         best_loss = best_ep_info['best_loss']
     except FileNotFoundError:
         best_ep_info = {'best_loss': math.inf, 'best_epoch': 0}
+    num_stale_epochs = 0
 
     def plot_losses(epoch, train_losses, valid_losses):
         fig = plt.figure()
@@ -142,7 +143,7 @@ def main(args):
 
         s = f"After {epoch} epochs, on test set: Avg. loss: {valid_loss:.4f}, "
         s += f"Accuracy: {correct}/{len(test_loader.dataset)} ({100. * correct / len(test_loader.dataset):.0f}%), "
-        s += f"Best loss: {best_loss:.4f} (epoch {best_ep_info['best_epoch']}), "
+        s += f"Best loss: {best_loss:.4f} (epoch {best_ep_info['best_epoch']}, {num_stale_epochs=}), "
         s += f"ROC AUC: {roc_auc:.4f}"
         logging.info(s)
     
@@ -161,20 +162,27 @@ def main(args):
         train_losses.append(C_loss / len(train_loader))
         
         valid_loss = test(i)
-        if valid_loss < best_loss:
+        if valid_loss <= best_loss:
             best_loss = valid_loss
             best_ep_info = {
                 'best_loss': best_loss,
                 'best_epoch': i
             }
             torch.save(best_ep_info, path_results / 'best_loss.pt')
+            num_stale_epochs = 0
+        else:
+            num_stale_epochs += 1
 
-        if((i + 1) % 1 == 0):
+        if ((i + 1) % 1 == 0):
             save_model(i + 1)
             plot_losses(i + 1, train_losses, valid_losses)
-
-    logging.info('test')
-    test(args.num_epochs)
+            
+        if (args.patience > 0) and (num_stale_epochs >= args.patience):
+            logging.info(f"Early stopping after {i+1} epochs")
+            break
+    
+    logging.info("Done!")
+    logging.info(f"Best loss: {best_loss:.4f} (epoch {best_ep_info['best_epoch']})")
 
 
 if __name__ == "__main__":
