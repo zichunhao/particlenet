@@ -143,7 +143,6 @@ def main(args):
 
         s = f"After {epoch} epochs, on test set: Avg. loss: {valid_loss:.4f}, "
         s += f"Accuracy: {correct}/{len(test_loader.dataset)} ({100. * correct / len(test_loader.dataset):.0f}%), "
-        s += f"Best loss: {best_loss:.4f} (epoch {best_ep_info['best_epoch']}, {num_stale_epochs=}), "
         s += f"ROC AUC: {roc_auc:.4f}"
         logging.info(s)
     
@@ -172,6 +171,7 @@ def main(args):
             num_stale_epochs = 0
         else:
             num_stale_epochs += 1
+        logging.info(f"Best loss: {best_loss:.4f} (epoch {best_ep_info['best_epoch']}, {num_stale_epochs=})")
 
         if ((i + 1) % 1 == 0):
             save_model(i + 1)
