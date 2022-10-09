@@ -44,7 +44,8 @@ class ParticleNet(nn.Module):
         num_hits: int,
         node_feat_size: int,
         num_classes: int = 2,  # signal vs background
-        device: torch.device = torch.device('cpu')
+        device: torch.device = torch.device('cuda') \
+            if torch.cuda.is_available() else torch.device('cpu'),
     ):
         super(ParticleNet, self).__init__()
         self.num_hits = num_hits

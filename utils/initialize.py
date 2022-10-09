@@ -16,7 +16,8 @@ def initialize_model(args: argparse.ArgumentParser) -> ParticleNet:
     model = ParticleNet(
         num_hits=args.num_particles, 
         node_feat_size=args.node_feat_size,
-        num_classes=2
+        num_classes=2,
+        device=args.device
     ).to(device=args.device, dtype=args.dtype)
     if args.load_model:
         model.load_state_dict(torch.load(args.path_model_weights))
