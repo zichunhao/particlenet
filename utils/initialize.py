@@ -52,7 +52,7 @@ def initialize_dataloader(
     dataloader_test = DataLoader(
         dataset_test,
         batch_size=args.test_batch_size,
-        shuffle=True
+        shuffle=False
     )
     return dataloader_train, dataloader_test
 
