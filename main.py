@@ -47,7 +47,7 @@ def main(args):
             last_epoch=cycle_last_epoch
         )
 
-    loss = torch.nn.CrossEntropyLoss().to(device=args.device, dtype=args.dtype)
+    loss = torch.nn.BCELoss().to(device=args.device, dtype=args.dtype)
 
     train_losses = []
     valid_losses = []
@@ -92,11 +92,11 @@ def main(args):
         C_optimizer.zero_grad()
         
         data = data.to(device=args.device, dtype=args.dtype)
-        y = y.type(torch.LongTensor).to(args.device)
+        y = y.to(device=args.device, dtype=args.dtype)
         output = C(data)
 
         # nll_loss takes class labels as target, so one-hot encoding is not needed
-        C_loss = loss(output, y)
+        C_loss = loss(output, y.unsqueeze(-1))
 
         C_loss.backward()
         C_optimizer.step()
@@ -106,7 +106,6 @@ def main(args):
     def test(epoch):
         C.eval()
         valid_loss = 0
-        correct = 0
         y_outs = []
         logging.info("testing")
         dataset = test_loader.dataset
@@ -116,35 +115,38 @@ def main(args):
                 logging.debug(f"x[0]: {x[0]}, y: {y}")
                 
                 output = C(x.to(device=args.device, dtype=args.dtype))
-                y = y.type(torch.LongTensor).to(device=args.device)
+                y = y.to(device=args.device, dtype=args.dtype)
                 
-                valid_loss += loss(output, y).item()
-                pred = output.max(1, keepdim=True)[1]
-                logging.debug(f"pred: {pred}, output: {output}")
+                valid_loss += loss(output, y.unsqueeze(-1)).item()
+                pred = output.squeeze()
+                # logging.debug(f"pred: {pred}, output: {output}")
 
-                y_outs.append(output.cpu().numpy())
-                correct += pred.eq(y.view_as(pred)).sum()
+                y_outs.append(output.squeeze(-1))
+            
 
         valid_loss /= len(test_loader)
         valid_losses.append(valid_loss)
 
-        y_outs = np.concatenate(y_outs)
+        y_outs = torch.cat(y_outs)
         logging.debug(f"y_outs {y_outs}")
         logging.debug(f"y_true {dataset[:][1].numpy()}")
 
-        fpr, tpr, _ = roc_curve(dataset[:][1].numpy(), y_outs[..., 1])
+        acc = (y_outs.reshape(-1).cpu().round() == test_loader.dataset[:][1]).float().mean()
+        
+        y_outs = y_outs.cpu().numpy()
+        # logging.info(dataset[:][1].numpy(), y_outs)
+        fpr, tpr, _ = roc_curve(dataset[:][1].numpy(), y_outs)
         roc_auc = auc(fpr, tpr)
         if roc_auc < 0.5:
             # flip the sign of the output
-            fpr, tpr, _ = roc_curve(1 - dataset[:][1].numpy(), y_outs[..., 1])
+            fpr, tpr, _ = roc_curve(1 - dataset[:][1].numpy(), y_outs)
             roc_auc = auc(fpr, tpr)
             
         torch.save({'fpr': fpr, 'tpr': tpr, 'roc_auc': roc_auc}, path_roc / f"roc-epoch_{epoch}-auc_{roc_auc:.4f}.pt")
 
-        s = f"After {epoch} epochs, on test set: Avg. loss: {valid_loss:.4f}, "
-        s += f"Accuracy: {correct}/{len(test_loader.dataset)} ({100. * correct / len(test_loader.dataset):.0f}%), "
-        s += f"ROC AUC: {roc_auc:.4f}"
-        logging.info(s)
+        logging.info(
+            f"{epoch=} Avg. loss: {valid_loss:.4f}, Accuracy: {acc:.4f}, AUC: {roc_auc:.4f}"
+        )
     
         return valid_loss
 

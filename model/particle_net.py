@@ -43,7 +43,7 @@ class ParticleNet(nn.Module):
         self,
         num_hits: int,
         node_feat_size: int,
-        num_classes: int = 2,  # signal vs background
+        num_classes: int = 1,  # a single score for signal vs background
         device: torch.device = torch.device('cuda') \
             if torch.cuda.is_available() else torch.device('cpu'),
     ):
@@ -124,6 +124,10 @@ class ParticleNet(nn.Module):
                 return x    # for Frechet ParticleNet Distance
         else:
             x = self.dropout_layer(F.relu(x))
-
-        # no softmax because pytorch cross entropy loss includes softmax
-        return self.fc2(x)
+        
+        if self.num_classes == 1:
+            # binary classification
+            return torch.sigmoid(self.fc2(x))
+        else:
+            # no softmax because pytorch cross entropy loss includes softmax
+            return self.fc2(x)

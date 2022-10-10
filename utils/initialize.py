@@ -16,7 +16,7 @@ def initialize_model(args: argparse.ArgumentParser) -> ParticleNet:
     model = ParticleNet(
         num_hits=args.num_particles, 
         node_feat_size=args.node_feat_size,
-        num_classes=2,
+        num_classes=1,
         device=args.device
     ).to(device=args.device, dtype=args.dtype)
     if args.load_model:
